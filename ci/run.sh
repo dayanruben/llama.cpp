@@ -52,7 +52,10 @@ if [ ! -z ${GG_BUILD_SYCL} ]; then
         echo "source /opt/intel/oneapi/setvars.sh"
         exit 1
     fi
-
+    # Use only main GPU
+    export ONEAPI_DEVICE_SELECTOR="level_zero:0"
+    # Enable sysman for correct memory reporting
+    export ZES_ENABLE_SYSMAN=1
     CMAKE_EXTRA="${CMAKE_EXTRA} -DGGML_SYCL=1 -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_SYCL_F16=ON"
 fi
 
@@ -826,8 +829,10 @@ if [ -z ${GG_BUILD_LOW_PERF} ]; then
 fi
 
 ret=0
-
-test $ret -eq 0 && gg_run ctest_debug
+if [ -z ${GG_BUILD_SYCL} ]; then
+    # SYCL build breaks with debug build flags
+    test $ret -eq 0 && gg_run ctest_debug
+fi
 test $ret -eq 0 && gg_run ctest_release
 
 if [ -z ${GG_BUILD_LOW_PERF} ]; then
@@ -835,7 +840,9 @@ if [ -z ${GG_BUILD_LOW_PERF} ]; then
     test $ret -eq 0 && gg_run rerank_tiny
 
     if [ -z ${GG_BUILD_CLOUD} ] || [ ${GG_BUILD_EXTRA_TESTS_0} ]; then
-        test $ret -eq 0 && gg_run test_scripts_debug
+        if [ -z ${GG_BUILD_SYCL} ]; then
+            test $ret -eq 0 && gg_run test_scripts_debug
+        fi
         test $ret -eq 0 && gg_run test_scripts_release
     fi
 
@@ -846,7 +853,9 @@ if [ -z ${GG_BUILD_LOW_PERF} ]; then
             test $ret -eq 0 && gg_run pythia_2_8b
             #test $ret -eq 0 && gg_run open_llama_7b_v2
         fi
-        test $ret -eq 0 && gg_run ctest_with_model_debug
+        if [ -z ${GG_BUILD_SYCL} ]; then
+            test $ret -eq 0 && gg_run ctest_with_model_debug
+        fi
         test $ret -eq 0 && gg_run ctest_with_model_release
     fi
 fi
