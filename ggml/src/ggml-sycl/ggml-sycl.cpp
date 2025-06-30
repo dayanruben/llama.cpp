@@ -3676,6 +3676,21 @@ static bool ggml_sycl_compute_forward(ggml_backend_sycl_context & ctx, struct gg
                     return false;
             }
             break;
+        case GGML_OP_GLU:
+            switch (ggml_get_glu_op(dst)) {
+                case GGML_GLU_OP_REGLU:
+                    ggml_sycl_reglu(ctx, dst);
+                    break;
+                case GGML_GLU_OP_GEGLU:
+                    ggml_sycl_geglu(ctx, dst);
+                    break;
+                case GGML_GLU_OP_SWIGLU:
+                    ggml_sycl_swiglu(ctx, dst);
+                    break;
+                default:
+                    return false;
+            }
+            break;
         case GGML_OP_NORM:
             ggml_sycl_norm(ctx, dst);
             break;
@@ -4200,7 +4215,6 @@ static bool ggml_backend_sycl_device_supports_op(ggml_backend_dev_t dev, const g
                 case GGML_UNARY_OP_GELU_QUICK:
                 case GGML_UNARY_OP_GELU_ERF:
                 case GGML_UNARY_OP_TANH:
-                case GGML_UNARY_OP_EXP:
                 case GGML_UNARY_OP_SGN:
                 case GGML_UNARY_OP_ABS:
                 case GGML_UNARY_OP_ELU:
@@ -4209,9 +4223,22 @@ static bool ggml_backend_sycl_device_supports_op(ggml_backend_dev_t dev, const g
 #else
                     return ggml_is_contiguous(op->src[0]) && (op->src[0]->type == GGML_TYPE_F32 && op->type == GGML_TYPE_F32) && (op->type == op->src[0]->type);
 #endif
+                case GGML_UNARY_OP_EXP:
+                     // Disable FP16 until we find out the root cause of failing fp16 sycl::exp
+                    return ggml_is_contiguous(op->src[0]) && (op->type == op->src[0]->type) && op->src[0]->type == GGML_TYPE_F32;
                 default:
                     return false;
             }
+        case GGML_OP_GLU:
+            switch (ggml_get_glu_op(op)) {
+                case GGML_GLU_OP_REGLU:
+                case GGML_GLU_OP_GEGLU:
+                case GGML_GLU_OP_SWIGLU:
+                    return ggml_is_contiguous_1(op->src[0]);
+                default:
+                    return false;
+            }
+            break;
         case GGML_OP_MUL_MAT:
         case GGML_OP_MUL_MAT_ID:
             {
