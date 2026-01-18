@@ -247,6 +247,12 @@ static void test_expressions(testing & t) {
         "Bob"
     );
 
+    test_template(t, "negative float (not dot notation)",
+        "{{ -1.0 }}",
+        json::object(),
+        "-1.0"
+    );
+
     test_template(t, "bracket notation",
         "{{ user['name'] }}",
         {{"user", {{"name", "Bob"}}}},
@@ -1062,6 +1068,18 @@ static void test_object_methods(testing & t) {
         "{{ obj|tojson }}",
         {{"obj", {{"items", json::array({1, 2, 3})}}}},
         "{\"items\": [1, 2, 3]}"
+    );
+
+    test_template(t, "object attribute and key access",
+        "{{ obj.keys()|join(',') }} vs {{ obj['keys'] }} vs {{ obj.test }}",
+        {{"obj", {{"keys", "value"}, {"test", "attr_value"}}}},
+        "keys,test vs value vs attr_value"
+    );
+
+    test_template(t, "env should not have object methods",
+        "{{ keys is undefined }} {{ obj.keys is defined }}",
+        {{"obj", {{"a", "b"}}}},
+        "True True"
     );
 }
 
