@@ -26,6 +26,7 @@ permissions:
 
 jobs:
   create_tag:
+    if: github.repository_owner == 'ggml-org'
     name: Create and push git tag
     runs-on: ubuntu-slim
     permissions:
@@ -54,6 +55,7 @@ jobs:
           git push origin ${{ steps.srctag.outputs.name }} || exit 0
 
   prepare_matrices:
+    if: github.repository_owner == 'ggml-org'
     name: Prepare Docker matrices
     runs-on: ubuntu-24.04
     outputs:
@@ -122,6 +124,7 @@ jobs:
           echo "merge_matrix=$MERGE_MATRIX" >> "$GITHUB_OUTPUT"
 
   push_to_registry:
+    if: github.repository_owner == 'ggml-org'
     name: Push Docker image to Docker Registry
     needs: [prepare_matrices, create_tag]
 
